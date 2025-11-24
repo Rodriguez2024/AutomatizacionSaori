@@ -33,6 +33,7 @@ const float pagoHora = 20.00;
 Ticket boletoSalida;
 int contadorTickets = 0;
 int numeroLugar = 0;
+string mensaje = "";
 
 
 // --------------------------- SerialController -------------------------------
@@ -161,8 +162,8 @@ public:
             string receivedData(buffer);
             
             // DEBUG: Ver datos crudos
-            cout << "DEBUG: Bytes leidos: " << bytesRead << endl;
-            cout << "DEBUG: Raw data: '";
+            //cout << "DEBUG: Bytes leidos: " << bytesRead << endl;
+            //cout << "DEBUG: Raw data: '";
             for(int i = 0; i < bytesRead; i++) {
                 if(buffer[i] == '\r') cout << "\\r";
                 else if(buffer[i] == '\n') cout << "\\n";
@@ -177,10 +178,10 @@ public:
             
             // Solo marcar como nuevo dato si es diferente al anterior
             if (!receivedData.empty()) {
-                cout << "DEBUG: Datos limpios '" <<  receivedData << "'" << endl;
+                //cout << "DEBUG: Datos limpios '" <<  receivedData << "'" << endl;
                 accion = receivedData;
                 newDataAvailable = true;  // Marcar que hay nuevo dato
-                cout << "DEBUG: Nuevo dato disponible: '" << accion << "'" << endl;
+                //cout << "DEBUG: Nuevo dato disponible: '" << accion << "'" << endl;
             }
         }
     }
@@ -199,13 +200,16 @@ public:
 
 // Función para encontrar el primer lugar disponible
 int encontrarLugarDisponible() {
+
+    cout << "Entrando a contar lugares " << endl; // 23/11/2025 21:07
     for (int i = 0; i < totalLugares; i++) {
-        cout << "Lugar A - " << i + 1 << endl;
-        if (lugaresOcupados[i] == "" ) {
+        cout << "Lugar A - " << i + 1 << lugaresOcupados[i] << endl;
+        if (lugaresOcupados[i] == "" || lugaresOcupados[i].empty()) {
             cout << "Lugar A - " << i + 1 << endl;
             return i;  // Devuelve el índice del lugar disponible
         }
     }
+    cout << "No hay lugares disponibles" << endl; // 23/11/2025 21:07
     return -1;  // No hay lugares disponibles
 }
 
@@ -213,7 +217,7 @@ int encontrarLugarDisponible() {
 int contarLugaresOcupados() {
     int count = 0;
     for (int i = 0; i < totalLugares; i++) {
-        if (lugaresOcupados[i] == "" ) count++;
+        if (lugaresOcupados[i] == "" && lugaresOcupados[i].empty()) count++;
     }
     return count;
 }
@@ -278,7 +282,7 @@ float pagoTotal() {
     cout << "------------------------------------------" << endl;
 
     for (const auto& registro : RegistroTickets) {
-        if (registro.id == ticket) {
+        if (registro.id == ticket && registro.activo) {
             found = true;
             cout << "\n    ID:  " << registro.id    << endl;
             cout << " Lugar:  " << registro.lugar << endl;
@@ -291,13 +295,13 @@ float pagoTotal() {
     if (!found) {
         cout << "Ticket no encontrado."  << boletoSalida.id << endl;
         boletoSalida.id = "";
-        return 0;
+        return -2;
     }
 
+    cout << "------------------------------------------" << endl;
     do {
-        cout << "------------------------------------------" << endl;
         cout << "Desea continuar [s/n]?  ";
-        cin.get(op);
+        cin >> op;
 
         op = tolower(op);
 
@@ -310,11 +314,12 @@ float pagoTotal() {
     } while (op != 's' && op != 'n');
 
     //Borrando boleto de los cajones de estacionamiento
-    for (int i = 0; i < 6 ; i++) {
+    for (int i = 0; i < totalLugares ; i++) {
         if (lugaresOcupados[i] == boletoSalida.id) {
             lugaresOcupados [i] = "";
             lugarIndex = i;
             found = true;
+            break;
         }
     }
     
@@ -337,16 +342,20 @@ float pagoTotal() {
     whh << setw(2) << setfill('0') << hh;
     wmn << setw(2) << setfill('0') << min;
 
+    system("cls");
     cout << "\n =====================================" << endl;
     cout << "===     Ticket: " << boletoSalida.id << "      ===" << endl;
     cout << " =====================================" << endl;
-    cout << " Lugar:  " << "A-" << boletoSalida.lugar << endl;
-    cout << " Fecha:  " << wdia.str() << "/" << wmes.str() << "/" << boletoSalida.yyyy << endl;
-    cout << "  Hora:  " << whora.str() <<":" << wmin.str() << endl;
+    cout << "         Lugar: " << "A-" << boletoSalida.lugar << endl;
+    cout << "         Fecha: " << wdia.str() << "/" << wmes.str() << "/" << boletoSalida.yyyy << endl;
+    cout << "          Hora: " << whora.str() <<":" << wmin.str() << endl;
     cout << "\n =====================================" << endl;
-    cout << "datos actuales: " << endl;
-    cout << "Fecha Salida : " << wdd.str() << "/" <<  wmm.str() << "/" << yy <<  endl;
-    cout << "Hora Salida  : " << whh.str() << ":" << wmn.str() << endl;
+    cout << "\n\nDatos actuales: " << endl;
+    cout << "-------------------------------------" << endl;
+    cout << "\n  Fecha Salida: " << wdd.str() << "/" <<  wmm.str() << "/" << yy <<  endl;
+    cout << "   Hora Salida: " << whh.str() << ":" << wmn.str() << endl;
+    cout << " Precio x Hora: " << pagoHora << endl;
+    cout << "\n =====================================" << endl;
 
     if (yy == boletoSalida.yyyy && boletoSalida.activo) {
         if (mm == boletoSalida.mes) {
@@ -358,9 +367,8 @@ float pagoTotal() {
             } else {
                 if (dd > boletoSalida.dia && (dd - boletoSalida.dia > 1)) {
                     pagoDD = ((dd -boletoSalida.dia) - 1) * 24;
-                    cout << "Total de horas  : " << pagoDD << endl;
+                    cout << "\nTotal de horas: " << pagoDD << endl;
                     pagoDD = (pagoDD + hh) * pagoHora;
-                    cout << "Total de horas:  $  " << pagoDD << endl;
                     pagoMin = min * (pagoHora/60);
                 } else {
                     pagoDD = (24 - boletoSalida.hora); 
@@ -372,12 +380,13 @@ float pagoTotal() {
         }
     }
     
-    cout << "Lugar A-" << boletoSalida.lugar << " liberado." << endl;
-    cout << "\nLugares disponibles: " << (totalLugares - contarLugaresOcupados()) << endl;
+    cout << "\n\nLugar A-" << boletoSalida.lugar << " liberado." << endl;
+    mensaje = "";
 
     TotalxCobrar = pagoDD + pagoHH + pagoMin;
 
-    cout << "Por favor, reciba:  $ ";
+    cout << "\n    Por favor, " << endl;
+    cout << "            reciba:  $ ";
     cout << fixed << setprecision(2) << TotalxCobrar;
     cout << "  del cliente. " << endl;
 
@@ -386,10 +395,9 @@ float pagoTotal() {
         if (RegistroTickets[i].id == boletoSalida.id) {
             RegistroTickets[i].activo = false;
             RegistroTickets[i].cobro = TotalxCobrar;
-            lugarIndex = boletoSalida.lugar;
+            //lugarIndex = boletoSalida.lugar;
             boletoSalida.id = "";
             boletoSalida.hora = 0;
-            boletoSalida.min = 0;
             boletoSalida.dia = 0;
             boletoSalida.yyyy = 0;
             boletoSalida.mes = 0;
@@ -404,12 +412,18 @@ float pagoTotal() {
     cout << "Presione enter para continuar..." << endl;
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
     cin.get();
-    return 0;
+    return TotalxCobrar;
 }
 
 void listarLugares() {
+    system("cls");
+    cout << "\n=====================================" << endl;
+    cout << "\nTodos los Cajones del Estacionamiento" << endl;
+    cout << "\n-------------------------------------" << endl;
+    cout << "\n      Lugar          # de Ticket     " << endl;
+    cout << "\n=====================================" << endl;
     for (int i = 0; i < 6; i++) {
-        cout << lugaresOcupados[i] << endl;
+        cout << "     A-" << i + 1 << "     " << lugaresOcupados[i] << endl;
     }
     cout << "\n------------------------------------------" << endl;
     cout << "Presione enter para continuar..." << endl;
@@ -425,7 +439,7 @@ void listarTickets() {
     cout << "\n======================================================" << endl;
     cout << "\n                  Tickets registrados                 " << endl;
     cout << "\n------------------------------------------------------" << endl;
-    cout << "\n       ID        Lugar    Estado     Fecha      Hora  " << endl;
+    cout << "\n       ID       Lugar    Fecha      Hora      Activo  " << endl;
     cout << "\n======================================================" << endl;
     cout << " " << endl;
 
@@ -444,9 +458,9 @@ void listarTickets() {
                 estado = "Activo";
             }
 
-            cout << registro.id <<"    " <<  wreg.str() << "     " <<  estado;
-            cout << "   " << wdd.str() << "/" << wmm.str() << "/" << registro.yyyy;
-            cout << "   " << whh.str() << ":" << wmin.str() << endl;
+            cout << registro.id <<"   " <<  wreg.str() << "   " << wdd.str();
+            cout << "/" << wmm.str() << "/" << registro.yyyy << "   ";
+            cout <<  whh.str() << ":" << wmin.str() << "   " << estado << endl;
             wreg.str("");
             wid.str("");
             wreg.str("");
@@ -497,8 +511,8 @@ void menu() {
 
 void cargaPrevia(){
     //                             id            hr  min dia yy    mm lug  placa   cobro activo
-    RegistroTickets.push_back({"TCK-2025110001", 10, 30, 15, 2025, 11, 1, "ABC123", 0, true});
-    RegistroTickets.push_back({"TCK-2025110002", 11, 15, 20, 2025, 11, 2, "DEF456", 0, true});
+    RegistroTickets.push_back({"TCK-2025110001", 10, 30, 19, 2025, 11, 1, "ABC123", 0, true});
+    RegistroTickets.push_back({"TCK-2025110002", 11, 15, 21, 2025, 11, 2, "DEF456", 0, true});
     RegistroTickets.push_back({"TCK-2025110003", 12, 0, 20, 2025, 11, 3, "GHI789", 0, true});
 
     lugaresOcupados[0] = "TCK-2025110001";
@@ -515,6 +529,7 @@ int main() {
     int pos = -1;
     string wnum;
     string puerto;
+    string mensaje = "";
 
     // Intentar varios puertos
     const char* puertos[] = { "COM3", "COM4", "COM5", "COM6", "COM7", "COM8" };
@@ -542,11 +557,9 @@ int main() {
 
     while (true) {
         controller.checkForData();
-        
+
         if (controller.hasNewData()) {
-            cout << "DEBUG: Entrando en if - Nuevos datos detectados!" << endl;
             string datoRecibido = controller.getLastData();
-            cout << "DEBUG: Dato recibido procesado: '" << datoRecibido << "'" << endl;
             
             // Si llega nuevo dato, permitimos re-dibujar la pantalla de espera
             mostrarPantallaEspera = true;
@@ -560,15 +573,16 @@ int main() {
                 wnum = datoRecibido.substr(pos, len);
                 int val = -1;
                 try { val = stoi(wnum); } catch(...) { val = -1; }
+
+                cout << "valor (val) = " << val << endl;
                 accionRsp = val;
 
+                cout << "valor leido = " << accionRsp << endl;
                 if (accionRsp >= 0) {
                     switch (accionRsp) {
                         case 40: {
-                            
                             int lugarIndex = encontrarLugarDisponible();
-                            cout << "lugar --- " << lugarIndex << endl;
-
+                            cout << "lugar indice = " << lugarIndex << endl;
                             if (lugarIndex != -1) {
 
                                  // MARCAR EL LUGAR COMO OCUPADO
@@ -625,34 +639,40 @@ int main() {
                                 cout << "      Lugar: " << "A-" << nuevoTicket.lugar << endl;
                                 cout << "\n     =================================" << endl;
                                 cout << "\nPresione <F2> para acceder al Menu" << endl;
-                                Sleep(300);
+                                Sleep(400);
                                 controller.sendData("1");
                                 controller.clearSerialBuffer();
                             } else {
-                                cout << "No hay lugares!!!" << endl;
-                                controller.sendData("0"); // Por ejemplo, 0 = lleno
+                                mensaje =  "\n\n\n      No hay lugares!!!";
+                                controller.sendData("0");
                                 controller.clearSerialBuffer();
+                                Sleep(600);
                             }
                             break;
                         }
                         case 30: {
-                                if (contarLugaresOcupados() > 0) {
+                                if (contarLugaresOcupados() >=  0) {
                                     system("cls");
                                     cout << "\n     ===    SALIDA DE VEHICULO     ===" << endl;
-                                    int cobrar = pagoTotal();
-                                    if (cobrar == 0) { 
-                                        controller.sendData("0");
+                                    float cobrar = pagoTotal();
+
+                                    if (cobrar == 0 && boletoSalida.min <= 15) { 
+                                        cout << "\n     ===    Abra la pluma manualmente     ===" << endl;
                                         controller.clearSerialBuffer();
                                         break;
                                     }
-                                    //cout << "Vehiculo salio... " << endl;
+                                    if (cobrar < 0 ) {
+                                        cout << "Proceso cancelado... " << endl;
+                                    }
+                                
                                     //salida
-                                    cout << "Lugares disponibles: " << ((totalLugares - numeroLugar) + 1)  << endl;
+                                    cout << "Lugares disponibles: " << contarLugaresOcupados()  << endl;
                                     Sleep(300);
                                     controller.sendData("2");
                                     controller.clearSerialBuffer();
+                                    mensaje = "";
                                 } else {
-                                    cout << "No hay autos en el estacionamiento.\n "<< endl;
+                                    mensaje = "No hay autos en el estacionamiento.\n ";
                                     controller.sendData("0");
                                     controller.clearSerialBuffer();
                                 }
@@ -675,6 +695,7 @@ int main() {
                 cout << " Para acceder al Menu presione    F2 " << endl;
                 cout << " Para salir del programa presione F10" << endl;
                 cout << "-------------------------------------" << endl;
+                cout << mensaje << endl;
                 mostrarPantallaEspera = false;
             }
         }
