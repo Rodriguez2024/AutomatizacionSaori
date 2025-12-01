@@ -1,6 +1,7 @@
 #include <iostream>
 #include <conio.h>
 #include <string>
+#include <sstream>
 #include <windows.h>
 #include <vector>
 #include <ctime>
